@@ -1,0 +1,56 @@
+name: Build v3 Core Windows
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  build-mingw:
+    name: Build (MinGW-w64)
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    # 1. 安装 MSYS2 和 MinGW 环境 (包含 gcc, cmake, ninja)
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          git
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-libsodium
+
+    # 2. 执行编译
+    - name: Build v3 Core
+      shell: msys2 {0}
+      run: |
+        mkdir build
+        cd build
+        # 配置 CMake (使用 Ninja 构建系统)
+        cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release ..
+        # 开始编译
+        cmake --build .
+
+    # 3. 收集编译产物 (exe 和 依赖的 dll)
+    - name: Prepare Artifacts
+      shell: msys2 {0}
+      run: |
+        mkdir release
+        cp build/bin/v3_core.exe release/
+        # 自动复制 libsodium.dll 到输出目录
+        cp /mingw64/bin/libsodium-23.dll release/libsodium.dll || cp /mingw64/bin/libsodium.dll release/
+
+    # 4. 上传构建结果供下载
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: v3_core_windows_x64
+        path: release/*
