@@ -15,11 +15,7 @@ project(v3_core
 # =========================================================================
 # 选项配置
 # =========================================================================
-option(V3_BUILD_TESTS    "Build unit tests"           OFF)
-option(V3_ENABLE_FEC     "Enable FEC support"         ON)
-option(V3_ENABLE_PACING  "Enable pacing support"      ON)
-option(V3_ENABLE_GUARD   "Enable guard process"       ON)
-option(V3_STATIC_LINK    "Static link runtime"        ON)
+option(V3_STATIC_LINK "Static link runtime" ON)
 
 # =========================================================================
 # 编译器检测与配置
@@ -27,20 +23,20 @@ option(V3_STATIC_LINK    "Static link runtime"        ON)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Windows 平台检查
 if(NOT WIN32)
     message(FATAL_ERROR "v3_core is Windows-only. Use cross-compiler for other platforms.")
 endif()
 
 # 设置输出目录
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(GENERATED_INCLUDE_DIR ${CMAKE_BINARY_DIR}/generated_include) # 定义生成头文件的目录
 
 # =========================================================================
 # 版本信息
 # =========================================================================
 configure_file(
     "${CMAKE_SOURCE_DIR}/version.h.in"
-    "${CMAKE_BINARY_DIR}/generated/version_gen.h"
+    "${GENERATED_INCLUDE_DIR}/v3_version_gen.h" # 将生成的文件放入新目录
     @ONLY
 )
 
@@ -58,8 +54,6 @@ set(V3_CORE_SOURCES
     src/win_pipe.c
     src/win_process.c
     src/win_memory.c
-    
-    # 新增的核心逻辑文件
     src/v3_connection.c
     src/v3_crypto.c
     src/v3_protocol.c
@@ -78,29 +72,17 @@ set(V3_COMPILE_DEFINITIONS
     _CRT_SECURE_NO_WARNINGS
 )
 
-if(V3_ENABLE_FEC)
-    list(APPEND V3_COMPILE_DEFINITIONS V3_FEATURE_FEC=1)
-endif()
-
-if(V3_ENABLE_PACING)
-    list(APPEND V3_COMPILE_DEFINITIONS V3_FEATURE_PACING=1)
-endif()
-
-if(V3_ENABLE_GUARD)
-    list(APPEND V3_COMPILE_DEFINITIONS V3_FEATURE_GUARD=1)
-endif()
-
 # =========================================================================
 # Windows 系统库
 # =========================================================================
 set(V3_WINDOWS_LIBS
-    ws2_32      # Winsock
-    advapi32    # 注册表/服务
-    kernel32    # 核心 API
-    user32      # 用户界面
-    bcrypt      # 加密 API
-    ntdll       # NT 原生 API
-    sodium      # libsodium
+    ws2_32
+    advapi32
+    kernel32
+    user32
+    bcrypt
+    ntdll
+    sodium
 )
 
 # =========================================================================
@@ -114,7 +96,7 @@ add_executable(v3_core WIN32
 target_include_directories(v3_core PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}
-    ${CMAKE_BINARY_DIR}/generated
+    ${GENERATED_INCLUDE_DIR} # 将生成头文件的目录添加到包含路径
 )
 
 # 编译定义
