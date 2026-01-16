@@ -1,13 +1,10 @@
 # =========================================================================
-# v3 Core - CMake Build Configuration (FIXED)
+# v3 Core - CMake Build Configuration (FINALIZED)
 # =========================================================================
 
 cmake_minimum_required(VERSION 3.16)
 
 project(v3_core VERSION 1.0.0 LANGUAGES C)
-
-# --- Options ---
-option(V3_STATIC_LINK "Static link runtime" ON)
 
 # --- Compiler & Platform Setup ---
 set(CMAKE_C_STANDARD 11)
@@ -46,24 +43,6 @@ set(V3_CORE_SOURCES
     src/v3_pacing.c
 )
 
-# --- Compile Definitions ---
-set(V3_COMPILE_DEFINITIONS
-    WIN32_LEAN_AND_MEAN
-    _WIN32_WINNT=0x0601
-    UNICODE
-    _UNICODE
-    # _CRT_SECURE_NO_WARNINGS is defined in each .c file, so it's removed from here to avoid redefinition warning.
-)
-
-# --- Compiler Flags ---
-if(MSVC)
-    target_compile_options(v3_core PRIVATE /W4 /WX /utf-8 /MP /GS)
-else()
-    # For MinGW / GCC / Clang
-    target_compile_options(v3_core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-    # NOTE: -Werror is removed to allow build to succeed even with warnings.
-endif()
-
 # --- Libraries ---
 set(V3_WINDOWS_LIBS
     ws2_32
@@ -75,27 +54,52 @@ set(V3_WINDOWS_LIBS
     sodium
 )
 
-# --- Target Definition ---
+# =========================================================================
+# Target Definition - 必须先定义目标，再配置它
+# =========================================================================
 add_executable(v3_core WIN32 ${V3_CORE_SOURCES})
 
-# --- Target Properties ---
+# =========================================================================
+# Target Configuration - 所有 target_* 命令都在 add_executable 之后
+# =========================================================================
+
+# --- Include Directories ---
 target_include_directories(v3_core PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}
     ${GENERATED_INCLUDE_DIR}
 )
 
+# --- Compile Definitions ---
 target_compile_definitions(v3_core PRIVATE
-    ${V3_COMPILE_DEFINITIONS}
+    WIN32_LEAN_AND_MEAN
+    _WIN32_WINNT=0x0601
+    UNICODE
+    _UNICODE
+    _CRT_SECURE_NO_WARNINGS # <--- 在这里全局定义
 )
 
+# --- Compile Options ---
+if(MSVC)
+    target_compile_options(v3_core PRIVATE /W4 /WX /utf-8 /MP /GS)
+else()
+    # For MinGW / GCC / Clang
+    target_compile_options(v3_core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
+    # -Werror is removed to allow build to succeed even with warnings.
+endif()
+
+# --- Link Libraries ---
 target_link_libraries(v3_core PRIVATE
     ${V3_WINDOWS_LIBS}
 )
 
+# --- Target Properties ---
 set_target_properties(v3_core PROPERTIES OUTPUT_NAME "v3_core")
 
-# --- Installation and Packaging ---
+
+# =========================================================================
+# Installation and Packaging
+# =========================================================================
 install(TARGETS v3_core RUNTIME DESTINATION bin)
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION . OPTIONAL)
 set(CPACK_GENERATOR "ZIP")
