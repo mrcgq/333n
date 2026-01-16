@@ -158,8 +158,10 @@ v3_error_t v3_config_save(const v3_config_t *config, const char *path) {
     
     // 确保目录存在
     char dir[V3_CONFIG_MAX_PATH];
-    strncpy(dir, config_path, sizeof(dir) - 1);
+    
+    snprintf(dir, sizeof(dir), "%s", config_path); // 使用 snprintf 安全地复制字符串
     char *last_sep = strrchr(dir, '\\');
+    
     if (!last_sep) last_sep = strrchr(dir, '/');
     if (last_sep) {
         *last_sep = '\0';
@@ -450,7 +452,8 @@ static void* config_watch_thread_func(void *arg) {
     
 #ifdef V3_PLATFORM_WINDOWS
     char dir[V3_CONFIG_MAX_PATH];
-    strncpy(dir, g_config_watch_path, sizeof(dir) - 1);
+    
+	snprintf(dir, sizeof(dir), "%s", g_config_watch_path); // 使用 snprintf
     
     char *last_sep = strrchr(dir, '\\');
     if (last_sep) *last_sep = '\0';
